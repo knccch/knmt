@@ -267,7 +267,7 @@ def commandline():
     
     parser.add_argument("--additional_training_config", nargs = "*", help = "prefix of the trained model")
     parser.add_argument("--additional_trained_model", nargs = "*", help = "prefix of the trained model")
-    parser.add_argument("--model_weights", type = int, nargs = "*", help = "When performing ensembling its better to weight the model logits so as to make sure that the models bias are not carried over.")
+    parser.add_argument("--model_weights", type = float, nargs = "*", help = "When performing ensembling its better to weight the model logits so as to make sure that the models bias are not carried over.")
 
     parser.add_argument("--tgt_fn", help = "target text")
     
