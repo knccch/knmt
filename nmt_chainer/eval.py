@@ -91,7 +91,7 @@ def beam_search_all(gpu, encdec, eos_idx, src_data, beam_width, nb_steps, beam_o
        nb_steps_ratio, use_raw_score, 
        groundhog,
        tgt_unk_id, tgt_indexer, force_finish = False,
-       prob_space_combination = False, reverse_encdec = None):
+       prob_space_combination = False, reverse_encdec = None, ensembling_weights = None):
     
     log.info("starting beam search translation of %i sentences"% len(src_data))
     if isinstance(encdec, (list, tuple)) and len(encdec) > 1:
@@ -104,7 +104,8 @@ def beam_search_all(gpu, encdec, eos_idx, src_data, beam_width, nb_steps, beam_o
                                     need_attention = True, score_is_divided_by_length = not use_raw_score,
                                     groundhog = groundhog, force_finish = force_finish,
                                     prob_space_combination = prob_space_combination,
-                                    reverse_encdec = reverse_encdec)
+                                    reverse_encdec = reverse_encdec,
+                                    ensembling_weights = ensembling_weights)
         
         for num_t, (t, score, attn) in enumerate(translations_gen):
             if num_t %200 == 0:
@@ -138,7 +139,7 @@ def translate_to_file_with_beam_search(dest_fn, gpu, encdec, eos_idx, src_data, 
        groundhog,
        tgt_unk_id, tgt_indexer, force_finish = False,
        prob_space_combination = False, reverse_encdec = None, 
-       generate_attention_html = None, src_indexer = None, rich_output_filename = None):
+       generate_attention_html = None, src_indexer = None, rich_output_filename = None, ensembling_weights = None):
     
     log.info("writing translation to %s "% dest_fn)
     out = codecs.open(dest_fn, "w", encoding = "utf8")
@@ -147,7 +148,7 @@ def translate_to_file_with_beam_search(dest_fn, gpu, encdec, eos_idx, src_data, 
        nb_steps_ratio, use_raw_score, 
        groundhog,
        tgt_unk_id, tgt_indexer, force_finish = force_finish,
-       prob_space_combination = prob_space_combination, reverse_encdec = reverse_encdec)
+       prob_space_combination = prob_space_combination, reverse_encdec = reverse_encdec, ensembling_weights = ensembling_weights)
     
     
     attn_vis = None
@@ -266,7 +267,8 @@ def commandline():
     
     parser.add_argument("--additional_training_config", nargs = "*", help = "prefix of the trained model")
     parser.add_argument("--additional_trained_model", nargs = "*", help = "prefix of the trained model")
-    
+    parser.add_argument("--model_weights", type = float, nargs = "*", help = "When performing ensembling its better to weight the model logits so as to make sure that the models bias are not carried over.")
+
     parser.add_argument("--tgt_fn", help = "target text")
     
     parser.add_argument("--nbest_to_rescore", help = "nbest list in moses format")
@@ -340,8 +342,12 @@ def commandline():
         encdec = encdec.to_gpu(args.gpu)
         
     encdec_list = [encdec]
-    
+    ensembling_weights = args.model_weights
+
     if args.additional_training_config is not None:
+        if ensembling_weights is not None:
+            assert len(ensembling_weights) == len(additional_training_config) + 1 # Ensure that there are weights for the main model and the additional models
+            #assert sum(ensembling_weights) == 1.0 # Ensure that the weights sum to 1. Currently this logic is not perfect since there are different checkpoints being ensembled. Should fix the logic. TODO: RAJ, CHU
         assert len(args.additional_training_config) == len(args.additional_trained_model)
     
         
@@ -438,7 +444,8 @@ def commandline():
                                            reverse_encdec = reverse_encdec,
                                            generate_attention_html = args.generate_attention_html,
                                            src_indexer = src_indexer,
-                                           rich_output_filename = args.rich_output_filename)
+                                           rich_output_filename = args.rich_output_filename,
+                                           ensembling_weights = ensembling_weights)
         if args.prepostprocessor is not None:
             if args.apply_postprocessing:
                 src_prepostprocessor.apply_preprocessing(args.dest_fn, args.dest_fn + ".restored")
@@ -454,7 +461,8 @@ def commandline():
                                            reverse_encdec = reverse_encdec,
                                            generate_attention_html = args.generate_attention_html,
                                            src_indexer = src_indexer,
-                                           rich_output_filename = args.rich_output_filename)
+                                           rich_output_filename = args.rich_output_filename,
+                                            ensembling_weights = ensembling_weights)
         
         if args.prepostprocessor is not None:
             if args.apply_postprocessing:
