@@ -130,7 +130,7 @@ def compute_next_states_and_scores(dec_cell_ensemble, current_states_ensemble, c
         #log.info("Weighting the logits according to specified weights.")
         assert len(logits_ensemble) == len(ensembling_weights) # One final sanity check
         for logits_index in range(len(ensembling_weights)):
-            logits_index[i] *= ensembling_weights[i]
+            logits_ensemble[logits_index] *= ensembling_weights[logits_index]
 
     if not prob_space_combination:
         for logits in logits_ensemble:
