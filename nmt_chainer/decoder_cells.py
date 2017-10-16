@@ -13,6 +13,7 @@ from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
 import math, random
+import types
 
 import rnn_cells
 from utils import ortho_init, minibatch_sampling
@@ -125,7 +126,7 @@ class ConditionalizedDecoderCell(object):
         #print self.multi_target_signal.data.shape
         previous_states = None
         if self.multi_target_signal is not None:
-            previous_states = (self.multi_target_signal,)
+            previous_states = self.multi_target_signal
         else:
             previous_states = self.decoder_chain.gru.get_initial_states(mb_size)
         #print previous_states
@@ -256,7 +257,7 @@ class Decoder(Chain):
     """
     def __init__(self, Vo, Eo, Ho, Ha, Hi, Hl, attn_cls = AttentionModule, init_orth = False,
                  cell_type = rnn_cells.LSTMCell, is_multitarget = False):
-        if (type(cell_type) == type):
+        if (type(cell_type) == types.FunctionType):
             gru = cell_type(Eo + Hi, Ho)
         else:
             gru = rnn_cells.create_cell_model_from_string(cell_type)(Eo + Hi, Ho)
