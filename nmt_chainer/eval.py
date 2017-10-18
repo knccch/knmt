@@ -268,7 +268,7 @@ def commandline():
     parser.add_argument("--additional_training_config", nargs = "*", help = "prefix of the trained model")
     parser.add_argument("--additional_trained_model", nargs = "*", help = "prefix of the trained model")
     parser.add_argument("--model_weights", type = float, nargs = "*", help = "When performing ensembling its better to weight the model logits so as to make sure that the models bias are not carried over.")
-    parser.add_argument("--logit_weighting", type = bool, default = False, action = store_true, help = "If this is true then the logits are weighted else the softmax is weighted. We need to see which is better.")
+    parser.add_argument("--logit_weighting", default = False, action = "store_true", help = "If this is true then the logits are weighted else the softmax is weighted. We need to see which is better.")
 
     parser.add_argument("--tgt_fn", help = "target text")
     
@@ -415,7 +415,8 @@ def commandline():
     
     save_eval_config_fn = args.dest_fn + ".eval.config.json"
     log.info("Saving eval config to %s" % save_eval_config_fn)
-    json.dump(args.__dict__, open(save_eval_config_fn, "w"), indent=2, separators=(',', ': '))
+    with io.open(save_eval_config_fn, 'w', encoding="utf-8") as outfile:
+        outfile.write(unicode(json.dumps(args.__dict__, ensure_ascii=False)))
     
 #     translations = greedy_batch_translate(encdec, eos_idx, src_data, batch_size = args.mb_size, gpu = args.gpu)
     
