@@ -91,7 +91,7 @@ def beam_search_all(gpu, encdec, eos_idx, src_data, beam_width, nb_steps, beam_o
        nb_steps_ratio, use_raw_score, 
        groundhog,
        tgt_unk_id, tgt_indexer, force_finish = False,
-       prob_space_combination = False, reverse_encdec = None, ensembling_weights = None):
+       prob_space_combination = False, reverse_encdec = None, ensembling_weights = None, weighting_logits = None):
     
     log.info("starting beam search translation of %i sentences"% len(src_data))
     if isinstance(encdec, (list, tuple)) and len(encdec) > 1:
@@ -105,7 +105,7 @@ def beam_search_all(gpu, encdec, eos_idx, src_data, beam_width, nb_steps, beam_o
                                     groundhog = groundhog, force_finish = force_finish,
                                     prob_space_combination = prob_space_combination,
                                     reverse_encdec = reverse_encdec,
-                                    ensembling_weights = ensembling_weights)
+                                    ensembling_weights = ensembling_weights, weighting_logits = weighting_logits)
         
         for num_t, (t, score, attn) in enumerate(translations_gen):
             if num_t %200 == 0:
@@ -139,7 +139,7 @@ def translate_to_file_with_beam_search(dest_fn, gpu, encdec, eos_idx, src_data, 
        groundhog,
        tgt_unk_id, tgt_indexer, force_finish = False,
        prob_space_combination = False, reverse_encdec = None, 
-       generate_attention_html = None, src_indexer = None, rich_output_filename = None, ensembling_weights = None):
+       generate_attention_html = None, src_indexer = None, rich_output_filename = None, ensembling_weights = None, weighting_logits = None):
     
     log.info("writing translation to %s "% dest_fn)
     out = codecs.open(dest_fn, "w", encoding = "utf8")
@@ -148,7 +148,7 @@ def translate_to_file_with_beam_search(dest_fn, gpu, encdec, eos_idx, src_data, 
        nb_steps_ratio, use_raw_score, 
        groundhog,
        tgt_unk_id, tgt_indexer, force_finish = force_finish,
-       prob_space_combination = prob_space_combination, reverse_encdec = reverse_encdec, ensembling_weights = ensembling_weights)
+       prob_space_combination = prob_space_combination, reverse_encdec = reverse_encdec, ensembling_weights = ensembling_weights, weighting_logits = weighting_logits)
     
     
     attn_vis = None
@@ -268,6 +268,7 @@ def commandline():
     parser.add_argument("--additional_training_config", nargs = "*", help = "prefix of the trained model")
     parser.add_argument("--additional_trained_model", nargs = "*", help = "prefix of the trained model")
     parser.add_argument("--model_weights", type = float, nargs = "*", help = "When performing ensembling its better to weight the model logits so as to make sure that the models bias are not carried over.")
+    parser.add_argument("--logit_weighting", type = bool, default = False, action = store_true, help = "If this is true then the logits are weighted else the softmax is weighted. We need to see which is better.")
 
     parser.add_argument("--tgt_fn", help = "target text")
     
@@ -343,10 +344,11 @@ def commandline():
         
     encdec_list = [encdec]
     ensembling_weights = args.model_weights
+    weighting_logits = args.logit_weighting
 
     if args.additional_training_config is not None:
         if ensembling_weights is not None:
-            assert len(ensembling_weights) == len(args.additional_training_config) + 1 # Ensure that there are weights for the main model and the additional models
+            assert len(ensembling_weights) == len(additional_training_config) + 1 # Ensure that there are weights for the main model and the additional models
             #assert sum(ensembling_weights) == 1.0 # Ensure that the weights sum to 1. Currently this logic is not perfect since there are different checkpoints being ensembled. Should fix the logic. TODO: RAJ, CHU
         assert len(args.additional_training_config) == len(args.additional_trained_model)
     
@@ -413,8 +415,7 @@ def commandline():
     
     save_eval_config_fn = args.dest_fn + ".eval.config.json"
     log.info("Saving eval config to %s" % save_eval_config_fn)
-    with io.open(save_eval_config_fn, 'w', encoding="utf-8") as outfile:
-        outfile.write(unicode(json.dumps(args.__dict__, ensure_ascii=False)))
+    json.dump(args.__dict__, open(save_eval_config_fn, "w"), indent=2, separators=(',', ': '))
     
 #     translations = greedy_batch_translate(encdec, eos_idx, src_data, batch_size = args.mb_size, gpu = args.gpu)
     
@@ -445,7 +446,8 @@ def commandline():
                                            generate_attention_html = args.generate_attention_html,
                                            src_indexer = src_indexer,
                                            rich_output_filename = args.rich_output_filename,
-                                           ensembling_weights = ensembling_weights)
+                                           ensembling_weights = ensembling_weights,
+                                           weighting_logits = weighting_logits)
         if args.prepostprocessor is not None:
             if args.apply_postprocessing:
                 src_prepostprocessor.apply_preprocessing(args.dest_fn, args.dest_fn + ".restored")
@@ -462,7 +464,8 @@ def commandline():
                                            generate_attention_html = args.generate_attention_html,
                                            src_indexer = src_indexer,
                                            rich_output_filename = args.rich_output_filename,
-                                            ensembling_weights = ensembling_weights)
+                                            ensembling_weights = ensembling_weights,
+                                            weighting_logits = weighting_logits)
         
         if args.prepostprocessor is not None:
             if args.apply_postprocessing:
