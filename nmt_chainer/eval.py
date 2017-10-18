@@ -348,7 +348,7 @@ def commandline():
 
     if args.additional_training_config is not None:
         if ensembling_weights is not None:
-            assert len(ensembling_weights) == len(additional_training_config) + 1 # Ensure that there are weights for the main model and the additional models
+            assert len(ensembling_weights) == len(args.additional_training_config) + 1 # Ensure that there are weights for the main model and the additional models
             #assert sum(ensembling_weights) == 1.0 # Ensure that the weights sum to 1. Currently this logic is not perfect since there are different checkpoints being ensembled. Should fix the logic. TODO: RAJ, CHU
         assert len(args.additional_training_config) == len(args.additional_trained_model)
     
