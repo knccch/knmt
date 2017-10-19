@@ -128,7 +128,7 @@ def compute_next_states_and_scores(dec_cell_ensemble, current_states_ensemble, c
     # Weight the logits
     if ensembling_weights is not None:
         if weighting_logits:
-            #log.info("Weighting the logits according to specified weights.")
+            # log.info("Weighting the logits according to specified weights.")
             assert len(logits_ensemble) == len(ensembling_weights) # One final sanity check
             logits_ensemble = tuple(ensembling_weights[logits_index]*logits_ensemble[logits_index] for logits_index in range(len(ensembling_weights)))
 
@@ -136,18 +136,17 @@ def compute_next_states_and_scores(dec_cell_ensemble, current_states_ensemble, c
         # Weight the softmaxes for geometric average.
         if ensembling_weights is not None:
             if not weighting_logits:
-                #log.info("Weighting the softmaxes according to specified weights.")
+                # log.info("Weighting the softmaxes according to specified weights.")
                 assert len(logits_ensemble) == len(ensembling_weights) # One final sanity check
                 for logits, weight in zip(logits_ensemble, ensembling_weights):
                     combined_scores += weight * xp.log(F.softmax(logits).data)
             else:
                 for logits in logits_ensemble:
                     combined_scores += xp.log(F.softmax(logits).data)
-                    combined_scores /= len(dec_cell_ensemble)
         else:
             for logits in logits_ensemble:
                 combined_scores += xp.log(F.softmax(logits).data)
-                combined_scores /= len(dec_cell_ensemble)
+        combined_scores /= len(dec_cell_ensemble)
     else:
         # Weight the softmaxes for arithmetic average.
         if ensembling_weights is not None:
@@ -159,11 +158,10 @@ def compute_next_states_and_scores(dec_cell_ensemble, current_states_ensemble, c
             else:
                 for logits in logits_ensemble:
                     combined_scores += F.softmax(logits).data
-                    combined_scores /= len(dec_cell_ensemble)
         else:
             for logits in logits_ensemble:
                 combined_scores += F.softmax(logits).data
-                combined_scores /= len(dec_cell_ensemble)
+        combined_scores /= len(dec_cell_ensemble)
         combined_scores = xp.log(combined_scores)
         
         
