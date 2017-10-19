@@ -143,10 +143,11 @@ def compute_next_states_and_scores(dec_cell_ensemble, current_states_ensemble, c
             else:
                 for logits in logits_ensemble:
                     combined_scores += xp.log(F.softmax(logits).data)
+                combined_scores /= len(dec_cell_ensemble)
         else:
             for logits in logits_ensemble:
                 combined_scores += xp.log(F.softmax(logits).data)
-        combined_scores /= len(dec_cell_ensemble)
+            combined_scores /= len(dec_cell_ensemble)
     else:
         # Weight the softmaxes for arithmetic average.
         if ensembling_weights is not None:
@@ -158,10 +159,11 @@ def compute_next_states_and_scores(dec_cell_ensemble, current_states_ensemble, c
             else:
                 for logits in logits_ensemble:
                     combined_scores += F.softmax(logits).data
+                combined_scores /= len(dec_cell_ensemble)
         else:
             for logits in logits_ensemble:
                 combined_scores += F.softmax(logits).data
-        combined_scores /= len(dec_cell_ensemble)
+            combined_scores /= len(dec_cell_ensemble)
         combined_scores = xp.log(combined_scores)
         
         
